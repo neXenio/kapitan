@@ -1,4 +1,4 @@
 [submodule "kapitan/reclass"]
 	path = kapitan/reclass
 	url = https://github.com/neXenio/reclass.git
-	branch = support-relative-path
+	branch = merged-features

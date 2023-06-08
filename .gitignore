@@ -31,7 +31,3 @@ tags
 
 # Unit test / coverage reports
 .coverage
-
-examples_test/
-.idea/
-inv*.yml

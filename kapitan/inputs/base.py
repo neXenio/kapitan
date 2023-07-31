@@ -13,8 +13,8 @@ import os
 import base64
 from collections.abc import Mapping
 
-import yaml
 import toml
+import yaml
 
 from kapitan.errors import CompileError, KapitanError
 from kapitan.refs.base import Revealer

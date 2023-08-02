@@ -11,8 +11,8 @@ description = "Generic templated configuration management for Kubernetes, Terraf
 authors = [
     "Ricardo Amaro <ramaro@kapicorp.com>"
 ]
-documentation  = "https://kapitan.dev/"
-repository = "https://github.com/kapicorp/kapitan"
+documentation  = "https://nexenio.kapitan.dev/"
+repository = "https://github.com/nexenio/kapitan"
 readme = "README.md"
 keywords = ["jsonnet", "kubernetes", "reclass", "jinja"]
 classifiers = [

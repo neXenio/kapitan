@@ -56,6 +56,10 @@ class VaultClient(hvac.Client):
 
         if not token:
             raise VaultError("{} is empty".format(token_file))
+        
+        # clean up token of unwanted line endings
+        token = token.replace('\n', '')
+        token = token.replace('\r', '')
 
         return token
 

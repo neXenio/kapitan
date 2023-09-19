@@ -72,6 +72,7 @@ class VaultServer:
     def prepare_vault(self):
         # Initialize vault, unseal, mount secret engine & add auth
         os.environ["VAULT_ADDR"] = f"http://127.0.0.1:{self.port}"
+        logger.warning(f"Vault trying to start on {self.port}")
         self.vault_client = hvac.Client()
         init = self.vault_client.sys.initialize()
         self.vault_client.sys.submit_unseal_keys(init["keys"])

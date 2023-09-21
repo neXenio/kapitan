@@ -14,32 +14,12 @@ import unittest
 from kapitan.refs.base import RefController, RefParams, Revealer
 from kapitan.refs.secrets.vaultkv import VaultClient, VaultError, VaultSecret
 
-# from tests.vault_server import VaultServer
-from time import sleep
-import hvac
-import shutil
-import docker
+from tests.vault_server import VaultServer
 
 # Create temporary folder
 REFS_HOME = tempfile.mkdtemp()
 REF_CONTROLLER = RefController(REFS_HOME)
 REVEALER = Revealer(REF_CONTROLLER)
-
-# Create Vault docker container
-client = docker.from_env()
-env = {
-    "VAULT_LOCAL_CONFIG": '{"backend": {"file": {"path": "/vault/file"}}, "listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":"true"}}}'
-}
-
-vault_container = client.containers.run(
-    image="hashicorp/vault",
-    cap_add=["IPC_LOCK"],
-    ports={"8200": "8200"},
-    environment=env,
-    detach=True,
-    remove=True,
-    command="server",
-)
 
 
 class VaultSecretTest(unittest.TestCase):
@@ -48,50 +28,12 @@ class VaultSecretTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # setup vault server (running in container)
-        # cls.server = VaultServer(REFS_HOME, "test_vaultkv")
-        # make sure the container is up & running before testing
-        while vault_container.status != "running":
-            sleep(2)
-            vault_container.reload()
-
-        # Initialize vault, unseal, mount secret engine & add auth
-        cls.client = hvac.Client()
-        init = cls.client.sys.initialize()
-        cls.client.sys.submit_unseal_keys(init["keys"])
-        os.environ["VAULT_ROOT_TOKEN"] = init["root_token"]
-        cls.client.adapter.close()
-        cls.client = hvac.Client(token=init["root_token"])
-        cls.client.sys.enable_secrets_engine(backend_type="kv-v2", path="secret")
-        test_policy = """
-        path "secret/*" {
-          capabilities = ["read", "list"]
-        }
-        """
-        policy = "test_policy"
-        cls.client.sys.create_or_update_policy(name=policy, policy=test_policy)
-        os.environ["VAULT_USERNAME"] = "test_user"
-        os.environ["VAULT_PASSWORD"] = "test_password"
-        cls.client.sys.enable_auth_method("userpass")
-        cls.client.create_userpass(username="test_user", password="test_password", policies=[policy])
-        cls.client.sys.enable_auth_method("approle")
-        cls.client.create_role("test_role")
-        os.environ["VAULT_ROLE_ID"] = cls.client.get_role_id("test_role")
-        os.environ["VAULT_SECRET_ID"] = cls.client.create_role_secret_id("test_role")["data"]["secret_id"]
-        os.environ["VAULT_TOKEN"] = cls.client.create_token(policies=[policy], lease="1h")["auth"][
-            "client_token"
-        ]
+        cls.server = VaultServer(REFS_HOME, "test_vaultkv")
 
     @classmethod
     def tearDownClass(cls):
         # close connection
-        # cls.server.close_container()
-        cls.client.adapter.close()
-        vault_container.stop()
-        client.close()
-
-        shutil.rmtree(REFS_HOME, ignore_errors=True)
-        for i in ["ROOT_TOKEN", "TOKEN", "USERNAME", "PASSWORD", "ROLE_ID", "SECRET_ID"]:
-            del os.environ["VAULT_" + i]
+        cls.server.close_container()
 
     def test_token_authentication(self):
         """

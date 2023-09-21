@@ -59,26 +59,26 @@ class VaultServer:
         return vault_container
 
     def find_free_port(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(("", 0))
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            return s, s.getsockname()[1]
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("", 0))
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            port = sock.getsockname()[1]
+            sock.close()
+            return port
 
     def setup_vault(self):
-        init = self.prepare_vault()
-        self.set_backend_path(init)
+        initialized_client = self.prepare_vault()
+        self.set_backend_path(initialized_client)
         self.set_vault_attributes()
 
     def prepare_vault(self):
         # Initialize vault, unseal, mount secret engine & add auth
-        os.environ["VAULT_ADDR"] = f"http://127.0.0.1:{self.port}"
-        logger.warning(f"Vault trying to start on {self.port}")
-        self.vault_client = hvac.Client()
-        init = self.vault_client.sys.initialize()
-        self.vault_client.sys.submit_unseal_keys(init["keys"])
-        os.environ["VAULT_ROOT_TOKEN"] = init["root_token"]
+        self.vault_client = hvac.Client(url=f"http://127.0.0.1:{self.port}")
+        initialized_client = self.vault_client.sys.initialize()
+        self.vault_client.sys.submit_unseal_keys(initialized_client["keys"])
+        os.environ["VAULT_ROOT_TOKEN"] = initialized_client["root_token"]
         self.vault_client.adapter.close()
-        return init
+        return initialized_client
 
     def set_backend_path(self, init):
         self.vault_client = hvac.Client(token=init["root_token"])
@@ -119,7 +119,6 @@ class VaultServer:
 
         self.container.stop()
         self.docker_client.close()
-        self.socket.close()
 
         shutil.rmtree(self.ref_path, ignore_errors=True)
         for i in ["ROOT_TOKEN", "TOKEN", "USERNAME", "PASSWORD", "ROLE_ID", "SECRET_ID"]:

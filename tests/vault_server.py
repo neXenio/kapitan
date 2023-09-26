@@ -30,7 +30,7 @@ class VaultServer:
 
     def __init__(self, ref_path, name=None):
         self.docker_client = docker.from_env()
-        self.port = self.find_free_port()
+        self.socket, self.port = self.find_free_port()
         self.container = self.setup_container(name)
 
         self.ref_path = ref_path
@@ -58,12 +58,11 @@ class VaultServer:
         return container
 
     def find_free_port(self):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.bind(("", 0))
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            port = sock.getsockname()[1]
-            sock.close()
-        return port
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.bind(("", 0))
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        port = sock.getsockname()[1]
+        return sock, port
 
     def setup_vault(self):
         token = self.initialize()
@@ -141,3 +140,63 @@ class VaultTransitServer(VaultServer):
         }
         """
         return test_policy
+
+
+# try:
+#     server = VaultServer("", "test_vaultkv")
+#     server.setup_vault()
+#     for log in server.container.logs().decode().split("\n"):
+#         print(log)
+# except Exception as e:
+#     print("logs:")
+#     for log in server.container.logs().decode().split("\n"):
+#         print(log)
+#     raise e
+# finally:
+#     server.socket.close()
+#     server.container.stop()
+#     server.docker_client.close()
+
+# coverage run --source=kapitan --omit="*reclass*" -m unittest discover
+# coverage report --fail-under=65 -m
+
+
+def main():
+    try:
+        docker_client = docker.from_env()
+        env = {
+            "VAULT_LOCAL_CONFIG": '{"ui": true, "backend": {"file": {"path": "/vault/file"}}, "listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":"true"}}}'
+        }
+        port = 8200
+        # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        #     sock.bind(("", 0))
+        #     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        #     port = sock.getsockname()[1]
+
+        container = docker_client.containers.run(
+            image="hashicorp/vault",
+            cap_add=["IPC_LOCK"],
+            ports={"8200": port},
+            environment=env,
+            detach=True,
+            remove=True,
+            command="server",
+            name="test_vaultkv",
+        )
+        # make sure the container is up & running before testing
+        while container.status != "running":
+            sleep(2)
+            container.reload()
+
+        import requests
+        r = requests.get("http://127.0.0.1:8200/")
+        print("curl to localhost:", r.status_code)
+
+    except Exception as e:
+        raise e
+    finally:
+        container.stop()
+        docker_client.close()
+
+
+main()

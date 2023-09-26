@@ -22,6 +22,7 @@ class VaultTransitTest(unittest.TestCase):
     def setUpClass(cls):
         # setup vaulttransit server (running in container)
         cls.server = VaultTransitServer(REFS_HOME, "kapitan_test_vault_transit")
+        cls.server.setup_vault()
         cls.server.vault_client.secrets.transit.create_key(name="hvac_key")
         cls.server.vault_client.secrets.transit.create_key(name="hvac_updated_key")
 

@@ -13,7 +13,6 @@ import unittest
 
 from kapitan.refs.base import RefController, RefParams, Revealer
 from kapitan.refs.secrets.vaultkv import VaultClient, VaultError, VaultSecret
-
 from tests.vault_server import VaultServer
 
 # Create temporary folder
@@ -29,6 +28,7 @@ class VaultSecretTest(unittest.TestCase):
     def setUpClass(cls):
         # setup vault server (running in container)
         cls.server = VaultServer(REFS_HOME, "test_vaultkv")
+        cls.server.setup_vault()
 
     @classmethod
     def tearDownClass(cls):

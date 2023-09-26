@@ -30,21 +30,20 @@ class VaultServer:
 
     def __init__(self, ref_path, name=None):
         self.docker_client = docker.from_env()
-        self.socket, self.port = self.find_free_port()
+        self.port = self.find_free_port()
         self.container = self.setup_container(name)
 
         self.ref_path = ref_path
         self.vault_client = None
-        self.setup_vault()
 
     def setup_container(self, name=None):
         env = {
             "VAULT_LOCAL_CONFIG": '{"backend": {"file": {"path": "/vault/file"}}, "listener":{"tcp":{"address":"0.0.0.0:8200","tls_disable":"true"}}}'
         }
-        vault_container = self.docker_client.containers.run(
+        container = self.docker_client.containers.run(
             image="hashicorp/vault",
             cap_add=["IPC_LOCK"],
-            ports={"8200": self.port},
+            ports={"8200/tcp": self.port},
             environment=env,
             detach=True,
             remove=True,
@@ -52,11 +51,11 @@ class VaultServer:
             name=name,
         )
         # make sure the container is up & running before testing
-        while vault_container.status != "running":
-            sleep(2)
-            vault_container.reload()
+        while container.status != "running":
+            sleep(1)
+            container.reload()
 
-        return vault_container
+        return container
 
     def find_free_port(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -64,24 +63,26 @@ class VaultServer:
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             port = sock.getsockname()[1]
             sock.close()
-            return port
+        return port
 
     def setup_vault(self):
-        initialized_client = self.prepare_vault()
-        self.set_backend_path(initialized_client)
+        token = self.initialize()
+        self.enable_engine(token)
         self.set_vault_attributes()
 
-    def prepare_vault(self):
-        # Initialize vault, unseal, mount secret engine & add auth
-        self.vault_client = hvac.Client(url=f"http://127.0.0.1:{self.port}")
+    def initialize(self):
+        # Initialize vault, unseal, mount secret engine & get token
+        os.environ["VAULT_ADDR"] = f"http://127.0.0.1:{self.port}"
+        self.vault_client = hvac.Client()
         initialized_client = self.vault_client.sys.initialize()
         self.vault_client.sys.submit_unseal_keys(initialized_client["keys"])
-        os.environ["VAULT_ROOT_TOKEN"] = initialized_client["root_token"]
+        token = initialized_client["root_token"]
+        os.environ["VAULT_ROOT_TOKEN"] = token
         self.vault_client.adapter.close()
-        return initialized_client
+        return token
 
-    def set_backend_path(self, init):
-        self.vault_client = hvac.Client(token=init["root_token"])
+    def enable_engine(self, token):
+        self.vault_client = hvac.Client(token=token)
         self.vault_client.sys.enable_secrets_engine(backend_type="kv-v2", path="secret")
 
     def get_policy(self):
@@ -126,8 +127,8 @@ class VaultServer:
 
 
 class VaultTransitServer(VaultServer):
-    def set_backend_path(self, init):
-        self.vault_client = hvac.Client(token=init["root_token"])
+    def enable_engine(self, token):
+        self.vault_client = hvac.Client(token=token)
         self.vault_client.sys.enable_secrets_engine(backend_type="transit", path="transit")
 
     def get_policy(self):

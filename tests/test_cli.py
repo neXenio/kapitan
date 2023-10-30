@@ -29,30 +29,6 @@ if os.environ.get("GNUPGHOME", None) is None:
     os.environ["GNUPGHOME"] = GNUPGHOME
 
 
-@contextlib.contextmanager
-def set_env(**environ):
-    """
-    Temporarily set the process environment variables.
-
-    >>> with set_env(PLUGINS_DIR='test/plugins'):
-    ...   "PLUGINS_DIR" in os.environ
-    True
-
-    >>> "PLUGINS_DIR" in os.environ
-    False
-
-    :type environ: dict[str, unicode]
-    :param environ: Environment variables to set
-    """
-    old_environ = dict(os.environ)
-    os.environ.update(environ)
-    try:
-        yield
-    finally:
-        os.environ.clear()
-        os.environ.update(old_environ)
-
-
 class CliFuncsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -720,8 +696,9 @@ class CliFuncsTest(unittest.TestCase):
             "--vault-key",
             "testkey",
         ]
-        with set_env(VAULT_ADDR=self.server.vault_url):
-            main()
+        env = {"VAULT_ADDR": self.server.vault_url, "VAULT_SKIP_VERIFY": "True"}
+        os.environ.update(**env)
+        main()
 
         test_tag_content = "revealing: ?{vaultkv:test_secret}"
         test_tag_file = tempfile.mktemp()
@@ -733,7 +710,7 @@ class CliFuncsTest(unittest.TestCase):
 
         # set stdout as string
         stdout = io.StringIO()
-        with contextlib.redirect_stdout(stdout), set_env(VAULT_ADDR=self.server.vault_url):
+        with contextlib.redirect_stdout(stdout):
             main()
         self.assertEqual("revealing: {value}".format(value=test_secret_content), stdout.getvalue())
 

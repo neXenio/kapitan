@@ -9,6 +9,8 @@ import copy
 import logging
 import os
 import sys
+# from importlib.util import module_from_spec, spec_from_file_location
+# from inspect import getmembers, isfunction
 
 from omegaconf import Container, ListMergeMode, Node, OmegaConf
 
@@ -268,16 +270,26 @@ def register_resolvers(inventory_path: str) -> None:
     OmegaConf.register_new_resolver("helm_input", helm_input, replace=replace)
 
     # user defined resolvers
-    user_resolver_file = os.path.join(inventory_path, "resolvers.py")
-    if os.path.exists(user_resolver_file):
-        try:
-            register_user_resolvers(inventory_path)
-        except:
-            logger.warning(f"Couldn't import {os.path.join(inventory_path, 'resolvers.py')}")
+    register_user_resolvers(inventory_path)
+    # logger.warning(f"Couldn't import {os.path.join(inventory_path, 'resolvers.py')}")
 
 
 def register_user_resolvers(inventory_path: str) -> None:
     """import user resolvers specified in inventory/resolvers.py"""
+    # resolvers_path = "resolvers"
+    # abs_path = os.path.join(os.getcwd(), resolvers_path)
+    # sys.path.append(abs_path)
+    # import resolvers
+
+    # resolver_spec = spec_from_file_location("resolvers", os.path.join(resolvers_path, "__init__.py"))
+
+    # resolver_module = module_from_spec(resolver_spec)
+    # resolver_spec.loader.exec_module(resolver_module)
+
+    # for name, func in getmembers(resolver_module, isfunction):
+    #     print("registered", name)
+    #     OmegaConf.register_new_resolver(name, func, replace=True)
+
     try:
         import_path = os.path.join(os.getcwd(), inventory_path)
         sys.path.append(import_path)

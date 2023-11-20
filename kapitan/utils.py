@@ -9,7 +9,6 @@ from __future__ import print_function
 import collections
 import json
 import logging
-import magic
 import math
 import os
 import re
@@ -26,12 +25,16 @@ from hashlib import sha256
 from zipfile import ZipFile
 
 import jinja2
+import magic
 import requests
 import yaml
 
 from kapitan import cached, defaults
 from kapitan.errors import CompileError
-from kapitan.inputs.jinja2_filters import load_jinja2_filters, load_jinja2_filters_from_file
+from kapitan.inputs.jinja2_filters import (
+    load_jinja2_filters,
+    load_jinja2_filters_from_file,
+)
 from kapitan.version import VERSION
 
 logger = logging.getLogger(__name__)
@@ -220,15 +223,20 @@ def multiline_str_presenter(dumper, data):
     Ref: https://github.com/yaml/pyyaml/issues/240#issuecomment-1018712495
     """
     # get parsed args from cached.py
-    compile_args = cached.args.get("compile", None)
+    compile_args = cached.args.get("compile")
     style = None
     if compile_args:
         style = compile_args.yaml_multiline_string_style
 
     # check for inventory args too
-    inventory_args = cached.args.get("inventory", None)
+    inventory_args = cached.args.get("inventory")
     if inventory_args:
         style = inventory_args.multiline_string_style
+
+    # check for refs args too
+    refs_args = cached.args.get("refs")
+    if refs_args:
+        style = refs_args.yaml_multiline_string_style
 
     if style == "literal":
         style = "|"

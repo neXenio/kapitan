@@ -10,6 +10,7 @@ import logging
 import time
 
 import gnupg
+
 from kapitan import cached
 from kapitan.errors import KapitanError
 from kapitan.refs.base import RefError
@@ -102,6 +103,9 @@ class GPGSecret(Base64Ref):
         # can't use super().reveal() as we want bytes
         ref_data = base64.b64decode(self.data)
         return self._decrypt(ref_data)
+
+    def update_key(self, recipients):
+        return self.update_recipients(recipients)
 
     def update_recipients(self, recipients):
         """

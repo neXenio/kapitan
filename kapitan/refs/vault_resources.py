@@ -5,8 +5,9 @@
 
 "hashicorp vault resource functions"
 
-import os
 import logging
+import os
+
 import hvac
 
 from kapitan.errors import KapitanError
@@ -53,8 +54,12 @@ class VaultClient(hvac.Client):
         except IOError:
             raise VaultError("Cannot read file {}".format(token_file))
 
-        if not token:
+        if not token or len(token) == 0:
             raise VaultError("{} is empty".format(token_file))
+
+        # clean up token of unwanted line endings
+        token = token.replace("\n", "")
+        token = token.replace("\r", "")
 
         return token
 

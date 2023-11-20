@@ -18,7 +18,12 @@ from functools import lru_cache
 
 import yaml
 
-from kapitan.errors import RefBackendError, RefError, RefFromFuncError, RefHashMismatchError
+from kapitan.errors import (
+    RefBackendError,
+    RefError,
+    RefFromFuncError,
+    RefHashMismatchError,
+)
 from kapitan.refs.functions import eval_func, get_func_lookup
 from kapitan.utils import PrettyDumper, list_all_paths
 
@@ -28,6 +33,8 @@ except ImportError:
     from yaml import SafeLoader as YamlLoader
 
 logger = logging.getLogger(__name__)
+
+_ALREADY_EXISTING_SECRET_ = "_ALREADY_EXISTING_SECRET_"
 
 # e.g. ?{ref:my/secret/token} or ?{ref:my/secret/token||func:param1:param2}
 # e.g  ?{ref:basepayloadhere==:embedded} (for embedded refs)
@@ -642,6 +649,9 @@ class RefController(object):
             func_name, *func_params = func.strip().split(":")
             if func_name == "base64":  # not a real function
                 ctx.encode_base64 = True
+            elif func_name == "exists":
+                # indicating not overwriting secret (vaultkv only)
+                ctx.data = _ALREADY_EXISTING_SECRET_
             else:
                 try:
                     # call function with parameters and set generated secret to ctx.data

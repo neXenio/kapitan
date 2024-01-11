@@ -88,6 +88,7 @@ def trigger_compile(args):
         helm_refs=args.helm_refs,
         helm_refs_base64=args.helm_refs_base64,
         compose_node_name=args.compose_node_name,
+        multiprocess_objects=args.multiprocess_objects,
     )
 
 
@@ -346,6 +347,12 @@ def build_parser():
         action="store_true",
         default=from_dot_kapitan("compile", "encode_base64", False),
         help="(helm-only) encode .data key with base64",
+    )
+    compile_parser.add_argument(
+        "--multiprocess-objects",
+        default=from_dot_kapitan("compile", "multiprocess-objects", False),
+        action="store_true",
+        help="compute compile objects in parallel, default is 'false'",
     )
 
     compile_selector_parser = compile_parser.add_mutually_exclusive_group()

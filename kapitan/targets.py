@@ -83,12 +83,7 @@ def compile_targets(
                 logger.info("No changes since last compilation.")
                 return
 
-    # calculate optimal pool size
-    num_targets = 0
-    for _, _, files in os.walk(os.path.join(inventory_path, "targets")):
-        num_targets += len(files)
-    num_processes = max(1, min(parallel, num_targets))
-    pool = multiprocessing.Pool(num_processes)
+    pool = multiprocessing.Pool(os.cpu_count())
     cached.pool = pool
 
     try:

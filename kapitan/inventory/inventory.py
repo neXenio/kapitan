@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 class InventoryTarget:
     name: str
     path: str
-    composed_name: str
     parameters: dict = field(default_factory=dict)
     classes: list = field(default_factory=list)
 
@@ -63,21 +62,16 @@ class Inventory(ABC):
         for root, dirs, files in os.walk(self.targets_path):
             for file in files:
                 # split file extension and check if yml/yaml
-                path = os.path.join(root, file)
+                path = os.path.relpath(os.path.join(root, file), self.targets_path)
                 name, ext = os.path.splitext(file)
                 if ext not in (".yml", ".yaml"):
-                    logger.debug(f"{file}: targets have to be .yml or .yaml files.")
+                    logger.error(f"{file}: targets have to be .yml or .yaml files.")
                     continue
 
                 # initialize target
-                composed_name = (
-                    os.path.splitext(os.path.relpath(path, self.targets_path))[0]
-                    .replace(os.sep, ".")
-                    .lstrip(".")
-                )
-                target = InventoryTarget(name, path, composed_name)
                 if self.compose_target_name:
-                    target.name = target.composed_name
+                    name = path.replace(os.sep, ".")
+                target = InventoryTarget(name, path)
 
                 # check for same name
                 if self.targets.get(target.name):
@@ -95,7 +89,7 @@ class Inventory(ABC):
         """
         return self.get_targets([target_name], ignore_class_not_found)[target_name]
 
-    def get_targets(self, target_names: list, ignore_class_not_found: bool = False) -> dict:
+    def get_targets(self, target_names: list[str], ignore_class_not_found: bool = False) -> dict:
         """
         helper function to get rendered InventoryTarget objects for multiple targets
         """
@@ -115,7 +109,7 @@ class Inventory(ABC):
 
         return {name: target for name, target in self.targets.items() if name in target_names}
 
-    def get_parameters(self, target_names: Union[str, list], ignore_class_not_found: bool = False) -> dict:
+    def get_parameters(self, target_names: str | list[str], ignore_class_not_found: bool = False) -> dict:
         """
         helper function to get rendered parameters for single target or multiple targets
         """
@@ -126,7 +120,7 @@ class Inventory(ABC):
         return {name: target.parameters for name, target in self.get_targets(target_names)}
 
     @abstractmethod
-    def render_targets(self, targets: list = None, ignore_class_notfound: bool = False):
+    def render_targets(self, targets: list[InventoryTarget] = None, ignore_class_notfound: bool = False) -> None:
         """
         create the inventory depending on which backend gets used
         """

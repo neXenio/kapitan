@@ -194,7 +194,7 @@ def condition_and(*conditions: str):
 
 
 def condition_or(*conditions: str):
-    return all(map(evaluate_bool, conditions))
+    return any(map(evaluate_bool, conditions))
 
 
 def condition_equal(*configs):

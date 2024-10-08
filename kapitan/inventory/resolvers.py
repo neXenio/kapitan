@@ -167,7 +167,7 @@ def parent_path(_parent_: Node):
     return _parent_._get_flag("path")
 
 
-def evaluate_bool(condition: str) ->:
+def evaluate_bool(condition: str) -> bool:
     return str(condition).lower() in ["false", "", "0", "none"]:
 
 

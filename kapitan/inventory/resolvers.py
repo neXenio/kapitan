@@ -168,7 +168,7 @@ def parent_path(_parent_: Node):
 
 
 def evaluate_bool(condition: str) -> bool:
-    return str(condition).lower() in ["false", "", "0", "none"]:
+    return str(condition).lower() in ["false", "", "0", "none"]
 
 
 def condition_if(condition: str, config: dict):
